@@ -1,0 +1,118 @@
+{
+    "base_url": {
+        "description": "API 地址",
+        "type": "string",
+        "hint": "例如 https://chat-api4.087654.xyz，末尾不要带 /",
+        "default": "https://chat-api4.087654.xyz"
+    },
+    "api_key": {
+        "description": "API Key",
+        "type": "string",
+        "hint": "天絮API的 API Key（sk- 开头）",
+        "default": ""
+    },
+    "rpm": {
+        "description": "全局限速（次/分钟）",
+        "type": "int",
+        "hint": "任意 60 秒窗口内最多发起的请求数。默认 10，站方限速低于此值请调低",
+        "slider": {
+            "min": 1,
+            "max": 60,
+            "step": 1
+        },
+        "default": 10
+    },
+    "max_concurrency": {
+        "description": "最大并发数",
+        "type": "int",
+        "hint": "同时在途的请求数上限（配合限速，防止并发过多被网关掐断）",
+        "slider": {
+            "min": 1,
+            "max": 20,
+            "step": 1
+        },
+        "default": 10
+    },
+    "timeout_ms": {
+        "description": "单请求超时（毫秒）",
+        "type": "int",
+        "hint": "超过该时长无响应判定为不可用。默认 1000000ms（1 秒=1000，1000000ms=1000s）。注意 Cloudflare 524 会在约 126 秒时掐断连接",
+        "default": 1000000
+    },
+    "green_ms": {
+        "description": "可用延迟阈值（毫秒）",
+        "type": "int",
+        "hint": "首字延迟 ≤ 该值的模型才视为“可用”并公布",
+        "slider": {
+            "min": 1000,
+            "max": 120000,
+            "step": 1000
+        },
+        "default": 60000
+    },
+    "include_yellow": {
+        "description": "是否公布“一般”模型",
+        "type": "bool",
+        "hint": "关闭：只公布首字延迟 ≤ 可用阈值的模型；打开：延迟 ≤ 300000ms 的模型也会列入排名末尾",
+        "default": false
+    },
+    "prompt": {
+        "description": "检测用提示词",
+        "type": "text",
+        "hint": "发给每个模型的测试文本，短文本即可",
+        "default": "你好，请回复一个字符。"
+    },
+    "strict": {
+        "description": "严格模式",
+        "type": "bool",
+        "hint": "打开：只要模型返回错误即判定不可用；关闭：返回错误但延迟达标的模型仍计为可用",
+        "default": true
+    },
+    "group_whitelist": {
+        "description": "公布群白名单（QQ 群号）",
+        "type": "list",
+        "hint": "检测结果只公布到这些群。留空则只检测不公布",
+        "default": []
+    },
+    "send_mode": {
+        "description": "公布方式",
+        "type": "string",
+        "hint": "text=普通文本消息（通用）；forward=群聊合并转发卡片（仅 OneBot v11/aiocqhttp 支持，其它平台自动降级为文本）",
+        "default": "text"
+    },
+    "announce_header": {
+        "description": "公布消息标题",
+        "type": "string",
+        "hint": "消息第一行，例如：天絮API目前可用模型",
+        "default": "天絮API目前可用模型"
+    },
+    "max_models_per_broadcast": {
+        "description": "合并转发最大条数",
+        "type": "int",
+        "hint": "forward 模式下最多生成多少个转发节点（QQ 合并转发有上限）",
+        "slider": {
+            "min": 10,
+            "max": 100,
+            "step": 5
+        },
+        "default": 50
+    },
+    "bot_display_name": {
+        "description": "转发节点昵称",
+        "type": "string",
+        "hint": "forward 模式下每条转发节点显示的名字",
+        "default": "天絮API检测"
+    },
+    "bot_uin": {
+        "description": "转发节点 QQ 号",
+        "type": "string",
+        "hint": "forward 模式下每条转发节点显示的 QQ 号，可填机器人 QQ 号",
+        "default": ""
+    },
+    "timezone": {
+        "description": "调度时区",
+        "type": "string",
+        "hint": "定时任务使用的时区，默认北京时间 Asia/Shanghai",
+        "default": "Asia/Shanghai"
+    }
+}

@@ -1,0 +1,6 @@
+name: astrbot_plugin_tianxu_checker # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
+display_name: 天絮API可用模型检测 # 用于展示的名字（AstrBot >= v4.5.0 显示，低版本忽略）
+desc: 每 30 分钟（北京时间 :00/:30，自 00:00 起）自动检测天絮API全部模型的连通性与首字延迟，检测完成后将可用模型按延迟升序排名，公布到白名单群（支持普通文本 / 群聊合并转发两种形式）。
+version: v1.0.0
+author: alpam
+repo: https://github.com/alpam/astrbot_plugin_tianxu_checker
