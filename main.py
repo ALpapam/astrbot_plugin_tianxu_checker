@@ -5,8 +5,9 @@
   天絮API全部模型的连通性与首字延迟（全局限速 rpm 次/分钟，流式 TTFB）。
 - 检测完全结束后，将可用模型按首字延迟升序排名（No.1 延迟最小），只公布到群白名单。
 - 公布方式可由管理员选择：普通文本（text，通用）或群聊合并转发（forward，OneBot v11）。
-- 命令：/mc_run（立即检测并公布，管理员）、/mc_status（查看上次结果）、
-  /mc_mode text|forward（切换公布方式，管理员）。
+- 手动触发：白名单群成员或管理员在群里发「状态」（不带斜杠也生效）立即触发一轮检测；
+  管理员用 /mc_run 也可立即触发。
+- 其它命令：/mc_status（查看上次结果）、/mc_mode text|forward（切换公布方式，管理员）。
 """
 import asyncio
 import time
@@ -77,7 +78,7 @@ class TianxuApiChecker(Star):
     async def _scheduled_broadcast(self):
         await self._run_and_broadcast(source="定时")
 
-    async def _run_and_broadcast(self, source: str):
+    async def _run_and_broadcast(self, source: str, notify_umo: Optional[str] = None):
         if self._running:
             logger.info("[天絮检测] 上一轮检测仍在进行，本轮跳过")
             return
@@ -91,6 +92,15 @@ class TianxuApiChecker(Star):
                 logger.error("[天絮检测] 本轮检测失败：无法获取模型列表")
                 return
             await self._broadcast(summary, source)
+            # 手动触发（私聊/非白名单群）时，把结果也回发给发起会话
+            if notify_umo:
+                try:
+                    parts = notify_umo.split(":")
+                    gid = parts[2] if len(parts) >= 3 and parts[1] == "GroupMessage" else None
+                except Exception:
+                    gid = None
+                if gid not in self._whitelist():
+                    await self._send_text(notify_umo, self._build_listing(summary))
         except Exception as e:
             logger.exception(f"[天絮检测] 检测异常: {e}")
         finally:
@@ -194,6 +204,26 @@ class TianxuApiChecker(Star):
         await self.context.send_message(umo, MessageChain([Nodes(nodes)]))
 
     # ---------- 命令 ----------
+    @filter.regex(r"^/?状态[。！!]?$")
+    async def on_status_trigger(self, event: AstrMessageEvent):
+        """在群里发『状态』立即触发一次检测（白名单群成员或管理员；regex 不受唤醒词限制）。"""
+        self._platform_ids.add(event.get_platform_id())
+        gid = event.get_group_id()
+        is_admin = event.is_admin()
+        wl = self._whitelist()
+        if not is_admin and (gid is None or str(gid) not in wl):
+            yield event.plain_result("仅管理员或白名单群可触发检测。")
+            return
+        if self._running:
+            yield event.plain_result("检测正在进行中，请稍候（每 30 分钟自动一轮）。")
+            return
+        yield event.plain_result(
+            "开始检测全部模型（约 13-16 分钟），完成后自动公布到白名单群。"
+        )
+        asyncio.create_task(
+            self._run_and_broadcast(source="状态触发", notify_umo=event.unified_msg_origin)
+        )
+
     @filter.command("mc_run")
     @filter.permission_type(filter.PermissionType.ADMIN)
     async def mc_run(self, event: AstrMessageEvent):
@@ -206,7 +236,9 @@ class TianxuApiChecker(Star):
         yield event.plain_result(
             f"开始检测全部模型（全局限速 {rpm} 次/分钟，约 13-16 分钟），完成后自动公布到白名单群。"
         )
-        asyncio.create_task(self._run_and_broadcast(source="手动"))
+        asyncio.create_task(
+            self._run_and_broadcast(source="手动", notify_umo=event.unified_msg_origin)
+        )
 
     @filter.command("mc_status")
     async def mc_status(self, event: AstrMessageEvent):
